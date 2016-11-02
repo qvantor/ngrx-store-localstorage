@@ -119,13 +119,23 @@ export const localStorageSync = (keys : any[], rehydrate : boolean = false, stor
     const stateKeys = validateStateKeys(keys);
     const rehydratedState = rehydrate ? rehydrateApplicationState(stateKeys, storage) : undefined;
 
-    return function(state = rehydratedState, action : any){
+    return function(state : Object, action : any){
         /*
          Handle case where state is rehydrated AND initial state is supplied.
          Any additional state supplied will override rehydrated state for the given key.
          */
-        if(action.type === INIT_ACTION && rehydratedState){
-            state = Object.assign({}, state, rehydratedState);
+        if (action.type === INIT_ACTION && rehydratedState && state) {
+            Object.keys(state).forEach(function (key) {
+                if (state[key] instanceof Array && rehydratedState[key] instanceof Array) {
+                    state[key] = rehydratedState[key];
+                }
+                else if (typeof state[key] === 'object'
+                    && typeof rehydratedState[key] === 'object') {
+                    state[key] = Object.assign({}, state[key], rehydratedState[key])
+                } else {
+                    state[key] = rehydratedState[key];
+                }
+            });
         }
         const nextState = reducer(state, action);
         syncStateUpdate(nextState, stateKeys, storage);
